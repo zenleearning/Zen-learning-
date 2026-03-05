@@ -25,6 +25,7 @@ import { Languages, Volume2, Download, User as UserIcon, LogOut } from 'lucide-r
 import { jsPDF } from 'jspdf';
 import { useAuth } from './context/AuthContext';
 import { AuthModal } from './components/AuthModal';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -527,6 +528,7 @@ export default function App() {
           </div>
         </div>
       </footer>
+      <SpeedInsights />
     </div>
   );
 }
