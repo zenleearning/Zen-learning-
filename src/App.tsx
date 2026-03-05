@@ -13,9 +13,12 @@ import {
   BookMarked,
   X,
   Youtube,
-  Settings
+  Settings,
+  Menu as MenuIcon,
+  LayoutGrid,
+  School
 } from 'lucide-react';
-import { SYLLABUS_DATA, Subject, Chapter } from './data/syllabus';
+import { SYLLABUS_DATA, UP_BOARD_DATA, Subject, Chapter } from './data/syllabus';
 import { ChapterModal } from './components/ChapterModal';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { SettingsModal } from './components/SettingsModal';
@@ -30,6 +33,21 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Sound utility
+const playSound = (type: 'click' | 'success' | 'tab' | 'hover') => {
+  if (localStorage.getItem('sound_enabled') === 'false') return;
+  
+  const sounds = {
+    click: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
+    success: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3',
+    tab: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3',
+    hover: 'https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3'
+  };
+  const audio = new Audio(sounds[type]);
+  audio.volume = 0.1;
+  audio.play().catch(() => {});
+};
+
 export default function App() {
   const [showWelcome, setShowWelcome] = useState(() => {
     // Check if user has already seen the welcome screen in this session
@@ -39,8 +57,14 @@ export default function App() {
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [language, setLanguage] = useState<'EN' | 'HI'>('EN');
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem('sound_enabled');
+    return saved === null ? true : saved === 'true';
+  });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeBoard, setActiveBoard] = useState<'CBSE' | 'UP_BOARD'>('CBSE');
   const [themeColor, setThemeColor] = useState(() => localStorage.getItem('theme_color') || '#22d3ee');
   const [visualEffects, setVisualEffects] = useState(() => {
     const saved = localStorage.getItem('visual_effects');
@@ -95,26 +119,38 @@ export default function App() {
     localStorage.setItem('high_contrast', highContrast.toString());
   }, [highContrast]);
 
+  React.useEffect(() => {
+    localStorage.setItem('sound_enabled', soundEnabled.toString());
+  }, [soundEnabled]);
+
   const handleWelcomeComplete = () => {
     setShowWelcome(false);
     sessionStorage.setItem('welcome_seen', 'true');
   };
 
   const t = {
-    title: language === 'EN' ? 'FULL SYLLABUS' : 'पूरा पाठ्यक्रम',
-    subtitle: language === 'EN' ? 'Explore the complete CBSE Class 10 curriculum for the academic year 2025-26. No distractions, just pure learning.' : 'शैक्षणिक वर्ष 2025-26 के लिए पूर्ण सीबीएसई कक्षा 10 पाठ्यक्रम का अन्वेषण करें। कोई ध्यान भटकाना नहीं, बस शुद्ध सीखना।',
+    title: language === 'EN' ? (activeBoard === 'CBSE' ? 'CBSE SYLLABUS' : 'UP BOARD SYLLABUS') : (activeBoard === 'CBSE' ? 'सीबीएसई पाठ्यक्रम' : 'यूपी बोर्ड पाठ्यक्रम'),
+    subtitle: language === 'EN' 
+      ? `Explore the complete ${activeBoard} Class 10 curriculum for the academic year 2025-26. No distractions, just pure learning.` 
+      : `शैक्षणिक वर्ष 2025-26 के लिए पूर्ण ${activeBoard === 'CBSE' ? 'सीबीएसई' : 'यूपी बोर्ड'} कक्षा 10 पाठ्यक्रम का अन्वेषण करें। कोई ध्यान भटकाना नहीं, बस शुद्ध सीखना।`,
     searchPlaceholder: language === 'EN' ? 'Search subjects...' : 'विषय खोजें...',
     backBtn: language === 'EN' ? 'Back to Subjects' : 'विषयों पर वापस जाएं',
     curriculum: language === 'EN' ? 'Curriculum 2025-26' : 'पाठ्यक्रम 2025-26',
     chaptersCount: language === 'EN' ? 'Chapters Included' : 'अध्याय शामिल हैं',
     readyTitle: language === 'EN' ? 'Ready for Exams?' : 'परीक्षा के लिए तैयार?',
-    readyDesc: language === 'EN' ? 'This syllabus is strictly based on the latest CBSE guidelines for Class 10. Focus on these topics to score 100%.' : 'यह पाठ्यक्रम सख्ती से कक्षा 10 के लिए नवीनतम सीबीएसई दिशानिर्देशों पर आधारित है। 100% स्कोर करने के लिए इन विषयों पर ध्यान दें।',
+    readyDesc: language === 'EN' 
+      ? `This syllabus is strictly based on the latest ${activeBoard} guidelines for Class 10. Focus on these topics to score 100%.` 
+      : `यह पाठ्यक्रम सख्ती से कक्षा 10 के लिए नवीनतम ${activeBoard === 'CBSE' ? 'सीबीएसई' : 'यूपी बोर्ड'} दिशानिर्देशों पर आधारित है। 100% स्कोर करने के लिए इन विषयों पर ध्यान दें।`,
     downloadBtn: language === 'EN' ? 'Download PDF Guide' : 'पीडीएफ गाइड डाउनलोड करें',
-    portal: language === 'EN' ? 'CBSE Class 10 Portal' : 'सीबीएसई कक्षा 10 पोर्टल',
+    portal: language === 'EN' ? `${activeBoard} Class 10 Portal` : `${activeBoard === 'CBSE' ? 'सीबीएसई' : 'यूपी बोर्ड'} कक्षा 10 पोर्टल`,
     footer: language === 'EN' ? 'Zen Learning All rights reserved' : 'ज़ेन लर्निंग सर्वाधिकार सुरक्षित',
+    menu: language === 'EN' ? 'Menu' : 'मेनू',
+    boards: language === 'EN' ? 'Select Board' : 'बोर्ड चुनें',
   };
 
-  const filteredSubjects = SYLLABUS_DATA.filter(sub => 
+  const currentSyllabus = activeBoard === 'CBSE' ? SYLLABUS_DATA : UP_BOARD_DATA;
+
+  const filteredSubjects = currentSyllabus.filter(sub => 
     sub.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     sub.chapters.some(ch => ch.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -160,65 +196,79 @@ export default function App() {
       {/* Header */}
       <header className="fixed top-0 z-50 w-full border-b border-white/5 bg-black/40 backdrop-blur-3xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { setSelectedSubject(null); setSelectedChapter(null); }}>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl neon-bg text-black group-hover:shadow-[0_0_30px_var(--theme-color)] transition-all">
-              <GraduationCap size={24} />
-            </div>
-            <div>
-              <h1 className="font-display text-2xl uppercase tracking-tighter leading-none group-hover:text-theme transition-colors">Zen Learning</h1>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">{t.portal}</p>
+          <div className="flex items-center gap-2 sm:gap-6">
+            <button 
+              onClick={() => { playSound('click'); setIsSidebarOpen(true); }}
+              className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl glass-morphism hover:bg-white/10 transition-all group"
+              title="Menu"
+            >
+              <MenuIcon size={18} className="group-hover:scale-110 transition-transform" />
+            </button>
+
+            <div className="flex items-center gap-2 sm:gap-3 cursor-pointer group" onClick={() => { playSound('click'); setSelectedSubject(null); setSelectedChapter(null); }}>
+              <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl neon-bg text-black group-hover:shadow-[0_0_30px_var(--theme-color)] transition-all">
+                <GraduationCap size={18} className="sm:hidden" />
+                <GraduationCap size={24} className="hidden sm:block" />
+              </div>
+              <div className="hidden xs:block">
+                <h1 className="font-display text-base sm:text-2xl uppercase tracking-tighter leading-none group-hover:text-theme transition-colors">Zen Learning</h1>
+                <p className="text-[7px] sm:text-[10px] font-bold uppercase tracking-widest text-white/40">{t.portal}</p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="relative hidden sm:block">
+          <div className="flex items-center gap-1.5 sm:gap-6">
+            <div className="relative hidden lg:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={18} />
               <input 
                 type="text" 
                 placeholder={t.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-10 w-64 rounded-full glass-morphism pl-10 pr-4 text-sm outline-none focus:border-theme/50 transition-all"
+                className="h-10 w-48 xl:w-64 rounded-full glass-morphism pl-10 pr-4 text-sm outline-none focus:border-theme/50 transition-all"
               />
             </div>
 
             <button 
               onClick={() => setLanguage(language === 'EN' ? 'HI' : 'EN')}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl glass-morphism hover:bg-white/10 transition-all group"
+              className="flex items-center gap-1.5 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl glass-morphism hover:bg-white/10 transition-all group"
+              title={language === 'EN' ? 'Switch to Hindi' : 'Switch to English'}
             >
-              <Languages size={18} className="text-theme group-hover:rotate-12 transition-transform" />
-              <span className="text-xs font-bold uppercase tracking-widest">{language === 'EN' ? 'English' : 'हिंदी'}</span>
+              <Languages size={16} className="text-theme group-hover:rotate-12 transition-transform sm:w-[18px] sm:h-[18px]" />
+              <span className="hidden sm:inline text-xs font-bold uppercase tracking-widest">{language === 'EN' ? 'English' : 'हिंदी'}</span>
+              <span className="sm:hidden text-[9px] font-bold uppercase tracking-widest">{language === 'EN' ? 'EN' : 'HI'}</span>
             </button>
 
             <button 
-              onClick={() => setIsSettingsModalOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-xl glass-morphism hover:bg-white/10 transition-all group"
+              onClick={() => { playSound('click'); setIsSettingsModalOpen(true); }}
+              className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl glass-morphism hover:bg-white/10 transition-all group"
               title="Settings"
             >
-              <Settings size={18} className="group-hover:rotate-90 transition-transform duration-500" />
+              <Settings size={16} className="group-hover:rotate-90 transition-transform duration-500 sm:w-[18px] sm:h-[18px]" />
             </button>
 
             {user ? (
-              <div className="flex items-center gap-4">
-                <div className="hidden md:block text-right">
+              <div className="flex items-center gap-1.5 sm:gap-4">
+                <div className="hidden lg:block text-right">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Welcome</p>
                   <p className="text-xs font-bold truncate max-w-[100px]">{user.displayName || user.email?.split('@')[0]}</p>
                 </div>
                 <button 
                   onClick={() => logout()}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl glass-morphism hover:bg-red-500/20 hover:text-red-400 transition-all group"
+                  className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl glass-morphism hover:bg-red-500/20 hover:text-red-400 transition-all group"
                   title="Sign Out"
                 >
-                  <LogOut size={18} />
+                  <LogOut size={16} className="sm:w-[18px] sm:h-[18px]" />
                 </button>
               </div>
             ) : (
               <button 
                 onClick={() => setIsAuthModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black hover:bg-theme transition-all group"
+                className="flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-white text-black hover:bg-theme transition-all group"
               >
-                <UserIcon size={18} />
-                <span className="text-xs font-bold uppercase tracking-widest">Sign In</span>
+                <UserIcon size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <span className="hidden sm:inline text-xs font-bold uppercase tracking-widest">Sign In</span>
+                <span className="sm:hidden text-[9px] font-bold uppercase tracking-widest">Sign In</span>
               </button>
             )}
           </div>
@@ -234,9 +284,9 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
             >
-              <div className="mb-12">
-                <h2 className="font-display text-6xl tracking-tighter md:text-8xl mb-4">{t.title}</h2>
-                <p className="text-xl text-white/40 max-w-2xl">{t.subtitle}</p>
+              <div className="mb-8 sm:mb-12">
+                <h2 className="font-display text-4xl sm:text-6xl tracking-tighter md:text-8xl mb-4">{t.title}</h2>
+                <p className="text-base sm:text-xl text-white/40 max-w-2xl">{t.subtitle}</p>
               </div>
 
               {/* Featured Video Section */}
@@ -244,12 +294,12 @@ export default function App() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                className="mb-24 relative group"
+                className="mb-16 sm:mb-24 relative group"
               >
                 {/* Dynamic Glow Background */}
                 <div className="absolute -inset-4 bg-theme/20 rounded-[48px] blur-[100px] opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
                 
-                <div className="relative rounded-[40px] overflow-hidden glass-card aspect-video shadow-2xl border border-white/10 group-hover:border-theme/30 transition-colors duration-500">
+                <div className="relative rounded-[24px] sm:rounded-[40px] overflow-hidden glass-card aspect-video shadow-2xl border border-white/10 group-hover:border-theme/30 transition-colors duration-500">
                   {visualEffects && <div className="absolute inset-0 crt-overlay z-20 opacity-30" />}
                   <video 
                     autoPlay={autoPlayVideo}
@@ -263,34 +313,34 @@ export default function App() {
                   </video>
 
                   {/* Overlay Content */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent flex flex-col justify-end p-8 md:p-20">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent flex flex-col justify-end p-6 sm:p-8 md:p-20">
                     <motion.div
                       initial={{ opacity: 0, y: 30 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.6 }}
                     >
-                      <div className="flex items-center gap-3 mb-6">
-                        <span className="h-px w-12 bg-theme" />
-                        <span className="text-theme text-[10px] font-bold uppercase tracking-[0.3em]">Future of Education</span>
+                      <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                        <span className="h-px w-8 sm:w-12 bg-theme" />
+                        <span className="text-theme text-[8px] sm:text-[10px] font-bold uppercase tracking-[0.3em]">Future of Education</span>
                       </div>
-                      <h3 className="font-display text-5xl md:text-8xl mb-6 leading-[0.85] uppercase">
+                      <h3 className="font-display text-3xl sm:text-5xl md:text-8xl mb-4 sm:mb-6 leading-[0.85] uppercase">
                         Empowering <br />
                         <span className="text-theme">Young Minds</span>
                       </h3>
-                      <p className="text-white/40 text-sm md:text-lg max-w-xl leading-relaxed font-light">
+                      <p className="text-white/40 text-xs sm:text-sm md:text-lg max-w-xl leading-relaxed font-light line-clamp-2 sm:line-clamp-none">
                         Experience a revolutionary way of learning with our AI-enhanced curriculum and immersive study materials.
                       </p>
                     </motion.div>
                   </div>
                   
                   {/* Techy HUD Elements */}
-                  <div className="absolute top-10 right-10 flex flex-col items-end gap-2">
-                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20">
-                      <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-[9px] font-bold uppercase tracking-widest text-red-400">System Active</span>
+                  <div className="absolute top-6 sm:top-10 right-6 sm:right-10 flex flex-col items-end gap-1 sm:gap-2">
+                    <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20">
+                      <div className="h-1 w-1 sm:h-1.5 sm:w-1.5 rounded-full bg-red-500 animate-pulse" />
+                      <span className="text-[7px] sm:text-[9px] font-bold uppercase tracking-widest text-red-400">System Active</span>
                     </div>
-                    <div className="font-mono text-[9px] text-white/20 uppercase tracking-widest">
+                    <div className="font-mono text-[7px] sm:text-[9px] text-white/20 uppercase tracking-widest">
                       Signal: 100% Stable
                     </div>
                   </div>
@@ -315,63 +365,65 @@ export default function App() {
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] mix-blend-overlay" />
                     
                     {/* Corner Brackets */}
-                    <div className="absolute top-10 left-10 border-l-2 border-t-2 border-theme/40 w-12 h-12 rounded-tl-xl" />
-                    <div className="absolute top-10 right-10 border-r-2 border-t-2 border-theme/40 w-12 h-12 rounded-tr-xl" />
-                    <div className="absolute bottom-10 left-10 border-l-2 border-b-2 border-theme/40 w-12 h-12 rounded-bl-xl" />
-                    <div className="absolute bottom-10 right-10 border-r-2 border-b-2 border-theme/40 w-12 h-12 rounded-br-xl" />
+                    <div className="absolute top-6 sm:top-10 left-6 sm:left-10 border-l-2 border-t-2 border-theme/40 w-8 sm:w-12 h-8 sm:h-12 rounded-tl-lg sm:rounded-tl-xl" />
+                    <div className="absolute top-6 sm:top-10 right-6 sm:right-10 border-r-2 border-t-2 border-theme/40 w-8 sm:w-12 h-8 sm:h-12 rounded-tr-lg sm:rounded-tr-xl" />
+                    <div className="absolute bottom-6 sm:bottom-10 left-6 sm:left-10 border-l-2 border-b-2 border-theme/40 w-8 sm:w-12 h-8 sm:h-12 rounded-bl-lg sm:rounded-bl-xl" />
+                    <div className="absolute bottom-6 sm:bottom-10 right-6 sm:right-10 border-r-2 border-b-2 border-theme/40 w-8 sm:w-12 h-8 sm:h-12 rounded-br-lg sm:rounded-br-xl" />
                   </div>
                 </div>
 
                 {/* Bottom Stats Bar */}
-                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[90%] glass-morphism rounded-2xl p-4 flex items-center justify-around border border-white/10 shadow-xl">
+                <div className="absolute -bottom-4 sm:-bottom-6 left-1/2 -translate-x-1/2 w-[95%] sm:w-[90%] glass-morphism rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center justify-around border border-white/10 shadow-xl">
                   <div className="text-center">
-                    <p className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Students</p>
-                    <p className="font-display text-xl">10K+</p>
+                    <p className="text-[8px] sm:text-[10px] text-white/40 uppercase tracking-widest mb-0.5 sm:mb-1">Students</p>
+                    <p className="font-display text-base sm:text-xl">10K+</p>
                   </div>
-                  <div className="h-8 w-px bg-white/10" />
+                  <div className="h-6 sm:h-8 w-px bg-white/10" />
                   <div className="text-center">
-                    <p className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Success Rate</p>
-                    <p className="font-display text-xl text-theme">99%</p>
+                    <p className="text-[8px] sm:text-[10px] text-white/40 uppercase tracking-widest mb-0.5 sm:mb-1">Success Rate</p>
+                    <p className="font-display text-base sm:text-xl text-theme">99%</p>
                   </div>
-                  <div className="h-8 w-px bg-white/10" />
+                  <div className="h-6 sm:h-8 w-px bg-white/10" />
                   <div className="text-center">
-                    <p className="text-[10px] text-white/40 uppercase tracking-widest mb-1">Resources</p>
-                    <p className="font-display text-xl">500+</p>
+                    <p className="text-[8px] sm:text-[10px] text-white/40 uppercase tracking-widest mb-0.5 sm:mb-1">Resources</p>
+                    <p className="font-display text-base sm:text-xl">500+</p>
                   </div>
                 </div>
               </motion.div>
 
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-2">
                 {filteredSubjects.map((subject) => (
                   <motion.div
                     key={subject.id}
                     whileHover={{ scale: 1.02 }}
-                    onClick={() => setSelectedSubject(subject)}
+                    onMouseEnter={() => playSound('hover')}
+                    onClick={() => { playSound('click'); setSelectedSubject(subject); }}
                     className={cn(
-                      "group relative cursor-pointer overflow-hidden rounded-[32px] glass-card p-8 transition-all",
+                      "group relative cursor-pointer overflow-hidden rounded-[24px] sm:rounded-[32px] glass-card p-6 sm:p-8 transition-all",
                       visualEffects && "glitch-hover"
                     )}
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <div 
-                      className="absolute top-0 right-0 h-32 w-32 opacity-10 blur-3xl transition-opacity group-hover:opacity-20"
+                      className="absolute top-0 right-0 h-24 w-24 sm:h-32 sm:w-32 opacity-10 blur-3xl transition-opacity group-hover:opacity-20"
                       style={{ backgroundColor: subject.color }}
                     />
                     <div className="relative z-10">
                       <div 
-                        className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl"
+                        className="mb-4 sm:mb-6 flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-xl sm:rounded-2xl"
                         style={{ backgroundColor: `${subject.color}20`, color: subject.color }}
                       >
-                        <BookOpen size={28} />
+                        <BookOpen size={20} className="sm:hidden" />
+                        <BookOpen size={28} className="hidden sm:block" />
                       </div>
-                      <h3 className="mb-2 font-display text-4xl tracking-tight">{subject.name}</h3>
-                      <p className="mb-8 text-white/40 leading-relaxed">{subject.description}</p>
+                      <h3 className="mb-1 sm:mb-2 font-display text-2xl sm:text-4xl tracking-tight">{subject.name}</h3>
+                      <p className="mb-6 sm:mb-8 text-xs sm:text-base text-white/40 leading-relaxed line-clamp-2 sm:line-clamp-none">{subject.description}</p>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono text-white/20 uppercase tracking-widest">
+                        <span className="text-[10px] sm:text-xs font-mono text-white/20 uppercase tracking-widest">
                           {subject.chapters.length} {t.chaptersCount}
                         </span>
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full glass-morphism group-hover:bg-white group-hover:text-black transition-all">
-                          <ChevronRight size={20} />
+                        <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full glass-morphism group-hover:bg-white group-hover:text-black transition-all">
+                          <ChevronRight size={16} sm:size={20} />
                         </div>
                       </div>
                     </div>
@@ -388,28 +440,29 @@ export default function App() {
               className="max-w-4xl mx-auto"
             >
               <button 
-                onClick={() => setSelectedSubject(null)}
+                onClick={() => { playSound('click'); setSelectedSubject(null); }}
                 className="mb-12 flex items-center gap-2 text-white/40 hover:text-white transition-colors group"
               >
                 <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
                 <span className="text-sm font-bold uppercase tracking-widest">{t.backBtn}</span>
               </button>
 
-              <div className="mb-16">
-                <div className="flex items-center gap-4 mb-6">
+              <div className="mb-10 sm:mb-16">
+                <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
                   <div 
-                    className="h-12 w-12 rounded-xl flex items-center justify-center"
+                    className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl flex items-center justify-center"
                     style={{ backgroundColor: `${selectedSubject.color}20`, color: selectedSubject.color }}
                   >
-                    <BookMarked size={24} />
+                    <BookMarked size={20} className="sm:hidden" />
+                    <BookMarked size={24} className="hidden sm:block" />
                   </div>
-                  <span className="text-xs font-mono uppercase tracking-[0.3em] text-white/40">{t.curriculum}</span>
+                  <span className="text-[10px] sm:text-xs font-mono uppercase tracking-[0.3em] text-white/40">{t.curriculum}</span>
                 </div>
-                <h2 className="font-display text-7xl tracking-tighter mb-6">{selectedSubject.name}</h2>
-                <p className="text-xl text-white/40 leading-relaxed">{selectedSubject.description}</p>
+                <h2 className="font-display text-4xl sm:text-7xl tracking-tighter mb-4 sm:mb-6">{selectedSubject.name}</h2>
+                <p className="text-base sm:text-xl text-white/40 leading-relaxed line-clamp-3 sm:line-clamp-none">{selectedSubject.description}</p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {selectedSubject.chapters.map((chapter, idx) => {
                   const isCompleted = localStorage.getItem(`completed_${chapter.id}`) === 'true';
                   return (
@@ -418,39 +471,59 @@ export default function App() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      onClick={() => setSelectedChapter(chapter)}
+                      onMouseEnter={() => playSound('hover')}
+                      onClick={() => { playSound('click'); setSelectedChapter(chapter); }}
                       className={cn(
-                        "group cursor-pointer rounded-[24px] glass-card p-6 transition-all hover:bg-white/[0.06]",
+                        "group cursor-pointer rounded-[20px] sm:rounded-[24px] glass-card p-4 sm:p-6 transition-all hover:bg-white/[0.06]",
                         isCompleted ? "border-emerald-400/20 bg-emerald-400/5" : ""
                       )}
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-4">
-                          <span className="font-mono text-xs text-white/20">{(idx + 1).toString().padStart(2, '0')}</span>
+                      <div className="flex items-start justify-between mb-3 sm:mb-4">
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <span className="font-mono text-[10px] sm:text-xs text-white/20">{(idx + 1).toString().padStart(2, '0')}</span>
                           <h4 className={cn(
-                            "text-xl font-bold tracking-tight transition-colors",
+                            "text-lg sm:text-xl font-bold tracking-tight transition-colors",
                             isCompleted ? "text-emerald-400" : "group-hover:text-theme"
                           )}>
                             {chapter.name}
-                            {isCompleted && <span className="ml-2 text-[10px] uppercase tracking-widest opacity-60">(Done)</span>}
+                            {isCompleted && <span className="ml-2 text-[8px] sm:text-[10px] uppercase tracking-widest opacity-60">(Done)</span>}
                           </h4>
                         </div>
                         <div className={cn(
-                          "flex h-10 w-10 items-center justify-center rounded-xl transition-all",
+                          "flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl transition-all",
                           isCompleted ? "bg-emerald-400 text-black" : "glass-morphism group-hover:bg-theme group-hover:text-black"
                         )}>
-                          {isCompleted ? <CheckCircle2 size={18} /> : <BookMarked size={18} />}
+                          {isCompleted ? <CheckCircle2 size={16} className="sm:hidden" /> : <BookMarked size={16} className="sm:hidden" />}
+                          {isCompleted ? <CheckCircle2 size={18} className="hidden sm:block" /> : <BookMarked size={18} className="hidden sm:block" />}
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2 pl-10">
-                        {chapter.topics.map((topic, tIdx) => (
-                          <span 
-                            key={tIdx}
-                            className="rounded-full glass-morphism px-3 py-1 text-[10px] uppercase tracking-widest text-white/40"
-                          >
-                            {topic}
-                          </span>
-                        ))}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-4 sm:mt-6">
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                          {chapter.topics.slice(0, 2).map((topic, tIdx) => (
+                            <span 
+                              key={tIdx}
+                              className="rounded-full glass-morphism px-2 sm:px-3 py-0.5 sm:py-1 text-[8px] sm:text-[10px] uppercase tracking-widest text-white/40"
+                            >
+                              {topic}
+                            </span>
+                          ))}
+                          {chapter.topics.length > 2 && (
+                            <span className="rounded-full glass-morphism px-2 sm:px-3 py-0.5 sm:py-1 text-[8px] sm:text-[10px] uppercase tracking-widest text-white/40">
+                              +{chapter.topics.length - 2}
+                            </span>
+                          )}
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            playSound('click');
+                            setSelectedChapter(chapter);
+                          }}
+                          className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg sm:rounded-xl bg-theme/10 text-theme text-[9px] sm:text-[10px] font-bold uppercase tracking-widest hover:bg-theme hover:text-black transition-all"
+                        >
+                          Read Chapter
+                          <ChevronRight size={14} />
+                        </button>
                       </div>
                     </motion.div>
                   );
@@ -473,6 +546,105 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
+
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSidebarOpen(false)}
+              className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed left-0 top-0 z-[70] h-full w-72 sm:w-80 bg-[#0a0a0a] border-r border-white/10 p-6 shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-10">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg neon-bg flex items-center justify-center text-black">
+                    <GraduationCap size={18} />
+                  </div>
+                  <span className="font-display text-xl uppercase tracking-tighter">Zen Menu</span>
+                </div>
+                <button 
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="h-8 w-8 flex items-center justify-center rounded-lg glass-morphism hover:bg-white/10 transition-all"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-8">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 mb-4">{t.boards}</p>
+                  <div className="space-y-2">
+                    <button 
+                      onClick={() => { playSound('click'); setActiveBoard('CBSE'); setIsSidebarOpen(false); setSelectedSubject(null); }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all border",
+                        activeBoard === 'CBSE' 
+                          ? "bg-theme/10 border-theme/30 text-theme" 
+                          : "bg-white/5 border-transparent hover:bg-white/10 text-white/60"
+                      )}
+                    >
+                      <School size={18} />
+                      <span className="text-sm font-bold uppercase tracking-widest">CBSE Board</span>
+                      {activeBoard === 'CBSE' && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-theme shadow-[0_0_10px_var(--theme-color)]" />}
+                    </button>
+                    <button 
+                      onClick={() => { playSound('click'); setActiveBoard('UP_BOARD'); setIsSidebarOpen(false); setSelectedSubject(null); }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all border",
+                        activeBoard === 'UP_BOARD' 
+                          ? "bg-theme/10 border-theme/30 text-theme" 
+                          : "bg-white/5 border-transparent hover:bg-white/10 text-white/60"
+                      )}
+                    >
+                      <School size={18} />
+                      <span className="text-sm font-bold uppercase tracking-widest">UP Board</span>
+                      {activeBoard === 'UP_BOARD' && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-theme shadow-[0_0_10px_var(--theme-color)]" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 mb-4">Quick Links</p>
+                  <div className="space-y-2">
+                    <button 
+                      onClick={() => { setIsSidebarOpen(false); setSelectedSubject(null); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 transition-all"
+                    >
+                      <LayoutGrid size={18} />
+                      <span className="text-sm font-bold uppercase tracking-widest">All Subjects</span>
+                    </button>
+                    <button 
+                      onClick={() => { setIsSidebarOpen(false); setIsSettingsModalOpen(true); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/60 transition-all"
+                    >
+                      <Settings size={18} />
+                      <span className="text-sm font-bold uppercase tracking-widest">Settings</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute bottom-6 left-6 right-6">
+                <div className="p-4 rounded-2xl bg-theme/5 border border-theme/10">
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-theme mb-1">Current Session</p>
+                  <p className="text-[10px] text-white/40 leading-relaxed">
+                    You are viewing the {activeBoard} curriculum for 2025-26.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <ChapterModal 
         chapter={selectedChapter} 
@@ -500,6 +672,8 @@ export default function App() {
         setHighContrast={setHighContrast}
         language={language}
         setLanguage={setLanguage}
+        soundEnabled={soundEnabled}
+        setSoundEnabled={setSoundEnabled}
       />
 
 

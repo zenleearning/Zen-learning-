@@ -17,6 +17,7 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --color-theme: var(--theme-color);
   --animate-scan: scan 3s linear infinite;
+  --breakpoint-xs: 375px;
 
   @keyframes scan {
     0% { transform: translateY(-100%); opacity: 0; }

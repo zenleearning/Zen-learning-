@@ -35,10 +35,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onComplete }) => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          <h1 className="font-display text-6xl md:text-8xl tracking-tighter uppercase mb-4 drop-shadow-[0_0_30px_rgba(var(--theme-color-rgb),0.5)]">
+          <h1 className="font-display text-4xl sm:text-6xl md:text-8xl tracking-tighter uppercase mb-4 drop-shadow-[0_0_30px_rgba(var(--theme-color-rgb),0.5)]">
             Zen <span className="text-theme">Learning</span>
           </h1>
-          <p className="text-white/40 text-lg md:text-xl max-w-md mx-auto mb-12 font-light tracking-wide">
+          <p className="text-white/40 text-base sm:text-lg md:text-xl max-w-md mx-auto mb-12 font-light tracking-wide">
             Master the CBSE Class 10 curriculum with precision and clarity.
           </p>
         </motion.div>

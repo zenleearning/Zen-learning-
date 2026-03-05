@@ -17,6 +17,8 @@ interface SettingsModalProps {
   setHighContrast: (val: boolean) => void;
   language: 'EN' | 'HI';
   setLanguage: (val: 'EN' | 'HI') => void;
+  soundEnabled: boolean;
+  setSoundEnabled: (val: boolean) => void;
 }
 
 const THEMES = [
@@ -41,7 +43,9 @@ export function SettingsModal({
   highContrast,
   setHighContrast,
   language,
-  setLanguage
+  setLanguage,
+  soundEnabled,
+  setSoundEnabled
 }: SettingsModalProps) {
   const handleReset = () => {
     if (confirm('Are you sure you want to reset all progress? This will clear your completed chapters.')) {
@@ -70,18 +74,19 @@ export function SettingsModal({
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-md overflow-hidden rounded-[32px] border border-white/10 bg-[#0a0a0a] p-8 shadow-2xl"
+            className="relative w-full max-w-md overflow-hidden rounded-[24px] sm:rounded-[32px] border border-white/10 bg-[#0a0a0a] p-6 sm:p-8 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
-            <div className="mb-8 flex items-center justify-between">
+            <div className="mb-6 sm:mb-8 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-white">
-                  <Sliders size={20} />
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-white/5 text-white">
+                  <Sliders size={18} className="sm:hidden" />
+                  <Sliders size={20} className="hidden sm:block" />
                 </div>
-                <h2 className="font-display text-2xl tracking-tight uppercase">Settings</h2>
+                <h2 className="font-display text-xl sm:text-2xl tracking-tight uppercase">Settings</h2>
               </div>
               <button 
                 onClick={onClose}
-                className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-white/5 transition-colors"
+                className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full hover:bg-white/5 transition-colors"
               >
                 <X size={20} />
               </button>
@@ -122,6 +127,22 @@ export function SettingsModal({
                   <span className="text-[10px] font-bold uppercase tracking-widest">Preferences</span>
                 </div>
                 <div className="space-y-3">
+                  <div className="flex items-center justify-between rounded-2xl bg-white/5 p-4">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">Sound Effects</span>
+                      <span className="text-[10px] text-white/40">UI interactions</span>
+                    </div>
+                    <button 
+                      onClick={() => setSoundEnabled(!soundEnabled)}
+                      className={`h-6 w-12 rounded-full p-1 transition-colors ${soundEnabled ? 'bg-theme' : 'bg-white/10'}`}
+                    >
+                      <motion.div 
+                        animate={{ x: soundEnabled ? 24 : 0 }}
+                        className="h-4 w-4 rounded-full bg-white shadow-sm"
+                      />
+                    </button>
+                  </div>
+
                   <div className="flex items-center justify-between rounded-2xl bg-white/5 p-4">
                     <div className="flex flex-col">
                       <span className="text-sm font-medium">Visual Effects</span>
