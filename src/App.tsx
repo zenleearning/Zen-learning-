@@ -38,6 +38,9 @@ import { twMerge } from 'tailwind-merge';
 import { jsPDF } from 'jspdf';
 import { useAuth } from './context/AuthContext';
 import { AuthModal } from './components/AuthModal';
+import { AdBanner } from './components/AdBanner';
+import { PremiumModal } from './components/PremiumModal';
+import { ShieldCheck, Sparkles, Zap } from 'lucide-react';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -95,6 +98,10 @@ export default function App() {
   const [highContrast, setHighContrast] = useState(() => {
     return localStorage.getItem('high_contrast') === 'true';
   });
+  const [isPremium, setIsPremium] = useState(() => {
+    return localStorage.getItem('is_premium') === 'true';
+  });
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const { user, logout } = useAuth();
 
@@ -173,6 +180,13 @@ export default function App() {
   const handleWelcomeComplete = () => {
     setShowWelcome(false);
     sessionStorage.setItem('welcome_seen', 'true');
+  };
+
+  const handlePremiumSuccess = () => {
+    setIsPremium(true);
+    localStorage.setItem('is_premium', 'true');
+    showToastMessage(language === 'EN' ? 'Premium activated! Ads removed.' : 'प्रीमियम सक्रिय! विज्ञापन हटा दिए गए।', 'success');
+    playSound('success');
   };
 
   const t = {
@@ -310,6 +324,17 @@ export default function App() {
             >
               <Settings size={16} className="group-hover:rotate-90 transition-transform duration-500 sm:w-[18px] sm:h-[18px]" />
             </button>
+
+            {!isPremium && (
+              <button 
+                onClick={() => { playSound('click'); setIsPremiumModalOpen(true); }}
+                className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-theme to-purple-500 text-black hover:shadow-[0_0_20px_rgba(var(--theme-color-rgb),0.5)] transition-all group focus:ring-2 focus:ring-theme/50 outline-none"
+                title="Remove Ads"
+                aria-label="Remove Ads"
+              >
+                <Zap size={16} className="group-hover:scale-110 transition-transform sm:w-[18px] sm:h-[18px]" />
+              </button>
+            )}
 
             {user ? (
               <div className="flex items-center gap-1.5 sm:gap-4">
@@ -579,51 +604,56 @@ export default function App() {
                 transition={{ delay: 0.9 }}
                 className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-2"
               >
-                {filteredSubjects.map((subject) => (
-                  <motion.div
-                    key={subject.id}
-                    whileHover={{ scale: 1.02 }}
-                    onMouseEnter={() => playSound('hover')}
-                    onClick={() => { playSound('click'); setSelectedSubject(subject); }}
-                    className={cn(
-                      "group relative cursor-pointer overflow-hidden rounded-[24px] sm:rounded-[32px] glass-card p-6 sm:p-8 transition-all focus:ring-2 focus:ring-theme/50 outline-none",
-                      visualEffects && "glitch-hover"
-                    )}
-                    role="button"
-                    aria-label={`View ${subject.name} syllabus`}
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        playSound('click');
-                        setSelectedSubject(subject);
-                      }
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div 
-                      className="absolute top-0 right-0 h-24 w-24 sm:h-32 sm:w-32 opacity-10 blur-3xl transition-opacity group-hover:opacity-20"
-                      style={{ backgroundColor: subject.color }}
-                    />
-                    <div className="relative z-10">
+                {filteredSubjects.map((subject, index) => (
+                  <React.Fragment key={subject.id}>
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      onMouseEnter={() => playSound('hover')}
+                      onClick={() => { playSound('click'); setSelectedSubject(subject); }}
+                      className={cn(
+                        "group relative cursor-pointer overflow-hidden rounded-[24px] sm:rounded-[32px] glass-card p-6 sm:p-8 transition-all focus:ring-2 focus:ring-theme/50 outline-none",
+                        visualEffects && "glitch-hover"
+                      )}
+                      role="button"
+                      aria-label={`View ${subject.name} syllabus`}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          playSound('click');
+                          setSelectedSubject(subject);
+                        }
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       <div 
-                        className="mb-4 sm:mb-6 flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-xl sm:rounded-2xl"
-                        style={{ backgroundColor: `${subject.color}20`, color: subject.color }}
-                      >
-                        <BookOpen size={20} className="sm:hidden" />
-                        <BookOpen size={28} className="hidden sm:block" />
-                      </div>
-                      <h3 className="mb-1 sm:mb-2 font-display text-2xl sm:text-4xl tracking-tight">{subject.name}</h3>
-                      <p className="mb-6 sm:mb-8 text-xs sm:text-base text-white/40 leading-relaxed line-clamp-2 sm:line-clamp-none">{subject.description}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] sm:text-xs font-mono text-white/20 uppercase tracking-widest">
-                          {subject.chapters.length} {t.chaptersCount}
-                        </span>
-                        <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full glass-morphism group-hover:bg-white group-hover:text-black transition-all">
-                          <ChevronRight size={16} sm:size={20} />
+                        className="absolute top-0 right-0 h-24 w-24 sm:h-32 sm:w-32 opacity-10 blur-3xl transition-opacity group-hover:opacity-20"
+                        style={{ backgroundColor: subject.color }}
+                      />
+                      <div className="relative z-10">
+                        <div 
+                          className="mb-4 sm:mb-6 flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-xl sm:rounded-2xl"
+                          style={{ backgroundColor: `${subject.color}20`, color: subject.color }}
+                        >
+                          <BookOpen size={20} className="sm:hidden" />
+                          <BookOpen size={28} className="hidden sm:block" />
+                        </div>
+                        <h3 className="mb-1 sm:mb-2 font-display text-2xl sm:text-4xl tracking-tight">{subject.name}</h3>
+                        <p className="mb-6 sm:mb-8 text-xs sm:text-base text-white/40 leading-relaxed line-clamp-2 sm:line-clamp-none">{subject.description}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] sm:text-xs font-mono text-white/20 uppercase tracking-widest">
+                            {subject.chapters.length} {t.chaptersCount}
+                          </span>
+                          <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full glass-morphism group-hover:bg-white group-hover:text-black transition-all">
+                            <ChevronRight size={16} sm:size={20} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
+                    </motion.div>
+                    {/* Inject Ad after every 2 subjects if not premium */}
+                    {!isPremium && (index + 1) % 2 === 0 && (
+                      <AdBanner className="md:col-span-2" />
+                    )}
+                  </React.Fragment>
                 ))}
               </motion.div>
 
@@ -689,6 +719,7 @@ export default function App() {
                 </div>
                 <h2 className="font-display text-4xl sm:text-7xl tracking-tighter mb-4 sm:mb-6">{selectedSubject.name}</h2>
                 <p className="text-base sm:text-xl text-white/40 leading-relaxed line-clamp-3 sm:line-clamp-none">{selectedSubject.description}</p>
+                {!isPremium && <AdBanner className="mt-8" />}
               </div>
 
               <div className="space-y-3 sm:space-y-4">
@@ -903,12 +934,36 @@ export default function App() {
               </div>
 
               <div className="absolute bottom-6 left-6 right-6">
-                <div className="p-4 rounded-2xl bg-theme/5 border border-theme/10">
-                  <p className="text-[8px] font-bold uppercase tracking-widest text-theme mb-1">Current Session</p>
-                  <p className="text-[10px] text-white/40 leading-relaxed">
-                    You are viewing the {activeBoard} curriculum for 2025-26.
-                  </p>
-                </div>
+                {!isPremium ? (
+                  <button 
+                    onClick={() => { setIsSidebarOpen(false); setIsPremiumModalOpen(true); }}
+                    className="w-full p-4 rounded-2xl bg-gradient-to-br from-theme/20 to-purple-500/20 border border-theme/30 text-left group hover:scale-[1.02] transition-all"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap size={14} className="text-theme animate-pulse" />
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-theme">Go Premium</p>
+                    </div>
+                    <p className="text-[10px] text-white/60 leading-relaxed mb-3">
+                      Remove all ads and unlock exclusive study materials.
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold">₹499 Only</span>
+                      <div className="h-6 w-6 rounded-full bg-theme text-black flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                        <ChevronRight size={14} />
+                      </div>
+                    </div>
+                  </button>
+                ) : (
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Premium Active</p>
+                      <p className="text-[8px] text-white/40 uppercase tracking-widest">Lifetime Access</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           </>
@@ -935,6 +990,7 @@ export default function App() {
         chapter={selectedChapter} 
         onClose={() => setSelectedChapter(null)} 
         language={language}
+        isPremium={isPremium}
         onComplete={(chapterName) => {
           showToastMessage(language === 'EN' ? `Chapter "${chapterName}" completed!` : `अध्याय "${chapterName}" पूरा हुआ!`);
         }}
@@ -963,6 +1019,17 @@ export default function App() {
         setLanguage={setLanguage}
         soundEnabled={soundEnabled}
         setSoundEnabled={setSoundEnabled}
+        isPremium={isPremium}
+        onUpgrade={() => {
+          setIsSettingsModalOpen(false);
+          setIsPremiumModalOpen(true);
+        }}
+      />
+
+      <PremiumModal 
+        isOpen={isPremiumModalOpen}
+        onClose={() => setIsPremiumModalOpen(false)}
+        onSuccess={handlePremiumSuccess}
       />
 
 

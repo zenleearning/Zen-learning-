@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, BookMarked, CheckCircle2, Volume2, VolumeX, Loader2, ChevronRight, HelpCircle, Lightbulb, FileText, Trophy } from 'lucide-react';
 import { Chapter } from '../data/syllabus';
 
+import { AdBanner } from './AdBanner';
+
 // Sound utility
 const playSound = (type: 'click' | 'success' | 'tab') => {
   const sounds = {
@@ -20,9 +22,10 @@ interface ChapterModalProps {
   onClose: () => void;
   language: 'EN' | 'HI';
   onComplete?: (chapterName: string) => void;
+  isPremium?: boolean;
 }
 
-export const ChapterModal: React.FC<ChapterModalProps> = ({ chapter, onClose, language, onComplete }) => {
+export const ChapterModal: React.FC<ChapterModalProps> = ({ chapter, onClose, language, onComplete, isPremium }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechInstance, setSpeechInstance] = useState<SpeechSynthesisUtterance | null>(null);
   const [note, setNote] = useState('');
@@ -321,6 +324,8 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({ chapter, onClose, la
                         <p className="text-white/70 leading-relaxed">{chapter.summary}</p>
                       </div>
                     )}
+
+                    {!isPremium && <AdBanner className="my-8" />}
 
                     {/* Topics Chips */}
                     <div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Palette, Bell, Trash2, Sliders } from 'lucide-react';
+import { X, Palette, Bell, Trash2, Sliders, ShieldCheck, Zap } from 'lucide-react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -19,6 +19,8 @@ interface SettingsModalProps {
   setLanguage: (val: 'EN' | 'HI') => void;
   soundEnabled: boolean;
   setSoundEnabled: (val: boolean) => void;
+  isPremium?: boolean;
+  onUpgrade?: () => void;
 }
 
 const THEMES = [
@@ -45,7 +47,9 @@ export function SettingsModal({
   language,
   setLanguage,
   soundEnabled,
-  setSoundEnabled
+  setSoundEnabled,
+  isPremium,
+  onUpgrade
 }: SettingsModalProps) {
   const handleReset = () => {
     if (confirm('Are you sure you want to reset all progress? This will clear your completed chapters.')) {
@@ -93,6 +97,39 @@ export function SettingsModal({
             </div>
 
             <div className="space-y-8">
+              {/* Premium Status */}
+              <div className="rounded-2xl bg-gradient-to-br from-theme/10 to-purple-500/10 border border-theme/20 p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    {isPremium ? (
+                      <ShieldCheck size={18} className="text-emerald-400" />
+                    ) : (
+                      <Zap size={18} className="text-theme" />
+                    )}
+                    <span className="text-xs font-bold uppercase tracking-widest">
+                      {isPremium ? 'Premium Active' : 'Free Version'}
+                    </span>
+                  </div>
+                  {isPremium && (
+                    <span className="text-[8px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">Lifetime</span>
+                  )}
+                </div>
+                
+                {!isPremium ? (
+                  <button 
+                    onClick={onUpgrade}
+                    className="w-full py-3 rounded-xl bg-theme text-black text-[10px] font-bold uppercase tracking-widest hover:scale-[1.02] transition-all flex items-center justify-center gap-2"
+                  >
+                    <Zap size={14} />
+                    Upgrade to Premium
+                  </button>
+                ) : (
+                  <p className="text-[10px] text-white/40 leading-relaxed">
+                    Thank you for supporting Zen Learning! You have full access to all features and zero ads.
+                  </p>
+                )}
+              </div>
+
               {/* Theme Selection */}
               <div>
                 <div className="mb-4 flex items-center gap-2 text-white/40">
