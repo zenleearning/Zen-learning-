@@ -189,6 +189,27 @@ export default function App() {
     playSound('success');
   };
 
+  const handleCancelPremium = () => {
+    setIsPremium(false);
+    localStorage.removeItem('is_premium');
+    showToastMessage(language === 'EN' ? 'Premium membership cancelled.' : 'प्रीमियम सदस्यता रद्द कर दी गई।', 'info');
+    playSound('click');
+  };
+
+  // Check for URL params on mount
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment') === 'success') {
+      handlePremiumSuccess();
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('payment') === 'cancel') {
+      showToastMessage(language === 'EN' ? 'Payment cancelled.' : 'भुगतान रद्द कर दिया गया।', 'info');
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [language]);
+
   const t = {
     title: language === 'EN' ? (activeBoard === 'CBSE' ? 'CBSE SYLLABUS' : 'UP BOARD SYLLABUS') : (activeBoard === 'CBSE' ? 'सीबीएसई पाठ्यक्रम' : 'यूपी बोर्ड पाठ्यक्रम'),
     subtitle: language === 'EN' 
@@ -1024,6 +1045,7 @@ export default function App() {
           setIsSettingsModalOpen(false);
           setIsPremiumModalOpen(true);
         }}
+        onCancelPremium={handleCancelPremium}
       />
 
       <PremiumModal 

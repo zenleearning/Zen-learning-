@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Check, ShieldCheck, Zap, Star, Sparkles, CreditCard, QrCode, ArrowRight, Info } from 'lucide-react';
+import { X, Check, ShieldCheck, Zap, Star, Sparkles, CreditCard, QrCode, ArrowRight, Info, Loader2 } from 'lucide-react';
+import { loadStripe } from '@stripe/stripe-js';
 
 interface PremiumModalProps {
   isOpen: boolean;
@@ -8,15 +9,58 @@ interface PremiumModalProps {
   onSuccess: () => void;
 }
 
+// Replace with your Stripe Publishable Key from Dashboard
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51P...placeholder');
+
 export const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [step, setStep] = React.useState<'plan' | 'pay' | 'verifying'>('plan');
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  
   const upiId = "7819870730@fam";
   const amount = "499";
   const upiUrl = `upi://pay?pa=${upiId}&pn=Zen%20Learning&am=${amount}&cu=INR&tn=Zen%20Learning%20Premium`;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
 
-  const handlePurchase = () => {
+  const handleStripeCheckout = async () => {
+    setIsProcessing(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      const { id, isDemo } = await response.json();
+      
+      if (isDemo) {
+        // If in demo mode, simulate the redirect and success
+        setTimeout(() => {
+          window.location.href = '/?payment=success';
+        }, 1500);
+        return;
+      }
+
+      const stripe = (await stripePromise) as any;
+      
+      if (!stripe) throw new Error('Stripe failed to load');
+      
+      const { error } = await stripe.redirectToCheckout({ sessionId: id });
+      if (error) throw error;
+
+    } catch (err: any) {
+      console.error('Stripe Error:', err);
+      setError(err.message || 'Something went wrong with the payment.');
+      setIsProcessing(false);
+    }
+  };
+
+  const handleManualUPI = () => {
     setStep('pay');
   };
 
@@ -30,6 +74,16 @@ export const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose, onS
       onClose();
     }, 3000);
   };
+
+  // Check for success URL on mount
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('payment') === 'success') {
+      onSuccess();
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [onSuccess]);
 
   return (
     <AnimatePresence>
@@ -87,27 +141,44 @@ export const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose, onS
                   ))}
                 </div>
 
-                <div className="relative p-6 rounded-3xl bg-gradient-to-br from-theme/20 to-purple-500/20 border border-white/10 mb-8">
+                <div className="relative p-6 rounded-3xl bg-gradient-to-br from-theme/20 to-purple-500/20 border border-white/10 mb-8 text-center">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold uppercase tracking-widest text-white/60">Lifetime Access</span>
                     <span className="px-2 py-1 rounded-md bg-theme text-black text-[10px] font-bold uppercase tracking-widest">Best Value</span>
                   </div>
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex items-baseline justify-center gap-2">
                     <span className="text-4xl font-display">₹{amount}</span>
                     <span className="text-white/40 text-sm line-through">₹1999</span>
                   </div>
                 </div>
 
-                <button
-                  onClick={handlePurchase}
-                  className="w-full h-14 relative group overflow-hidden rounded-2xl bg-white text-black font-bold uppercase tracking-widest text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-theme to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity" />
-                  <div className="flex items-center justify-center gap-2">
-                    <CreditCard size={18} />
-                    Continue to Payment
+                {error && (
+                  <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs text-center">
+                    {error}
                   </div>
-                </button>
+                )}
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={handleStripeCheckout}
+                    disabled={isProcessing}
+                    className="w-full h-14 relative group overflow-hidden rounded-2xl bg-white text-black font-bold uppercase tracking-widest text-sm transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-theme to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity" />
+                    <div className="flex items-center justify-center gap-2">
+                      {isProcessing ? <Loader2 size={18} className="animate-spin" /> : <CreditCard size={18} />}
+                      Pay with Card / UPI (Stripe)
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={handleManualUPI}
+                    className="w-full h-14 rounded-2xl glass-morphism text-white font-bold uppercase tracking-widest text-sm hover:bg-white/5 transition-all flex items-center justify-center gap-2"
+                  >
+                    <QrCode size={18} />
+                    Direct UPI (Manual)
+                  </button>
+                </div>
               </>
             )}
 
@@ -134,7 +205,6 @@ export const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose, onS
                     <button 
                       onClick={() => {
                         navigator.clipboard.writeText(upiId);
-                        // We could show a small "Copied" toast here if we had a local state
                       }}
                       className="p-2 rounded-lg bg-white/5 hover:bg-theme hover:text-black transition-all"
                       title="Copy UPI ID"
@@ -210,6 +280,13 @@ export const PremiumModal: React.FC<PremiumModalProps> = ({ isOpen, onClose, onS
             <p className="mt-4 text-[10px] text-center text-white/20 uppercase tracking-widest">
               UPI ID: {upiId} • Secure Transaction
             </p>
+
+            <button
+              onClick={onClose}
+              className="mt-6 w-full text-[10px] font-bold uppercase tracking-widest text-white/20 hover:text-white transition-colors"
+            >
+              Cancel & Go Back
+            </button>
           </motion.div>
         </div>
       )}

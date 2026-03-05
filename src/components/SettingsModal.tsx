@@ -21,6 +21,7 @@ interface SettingsModalProps {
   setSoundEnabled: (val: boolean) => void;
   isPremium?: boolean;
   onUpgrade?: () => void;
+  onCancelPremium?: () => void;
 }
 
 const THEMES = [
@@ -49,8 +50,11 @@ export function SettingsModal({
   soundEnabled,
   setSoundEnabled,
   isPremium,
-  onUpgrade
+  onUpgrade,
+  onCancelPremium
 }: SettingsModalProps) {
+  const [showCancelConfirm, setShowCancelConfirm] = React.useState(false);
+
   const handleReset = () => {
     if (confirm('Are you sure you want to reset all progress? This will clear your completed chapters.')) {
       Object.keys(localStorage).forEach(key => {
@@ -124,9 +128,41 @@ export function SettingsModal({
                     Upgrade to Premium
                   </button>
                 ) : (
-                  <p className="text-[10px] text-white/40 leading-relaxed">
-                    Thank you for supporting Zen Learning! You have full access to all features and zero ads.
-                  </p>
+                  <div className="space-y-4">
+                    <p className="text-[10px] text-white/40 leading-relaxed">
+                      Thank you for supporting Zen Learning! You have full access to all features and zero ads.
+                    </p>
+                    
+                    {!showCancelConfirm ? (
+                      <button 
+                        onClick={() => setShowCancelConfirm(true)}
+                        className="w-full py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[9px] font-bold uppercase tracking-widest hover:bg-red-500/20 transition-all"
+                      >
+                        Cancel Membership
+                      </button>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 space-y-3">
+                        <p className="text-[9px] text-red-400 font-bold uppercase tracking-widest text-center">Are you sure?</p>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => {
+                              onCancelPremium?.();
+                              setShowCancelConfirm(false);
+                            }}
+                            className="flex-1 py-2 rounded-lg bg-red-500 text-white text-[9px] font-bold uppercase tracking-widest"
+                          >
+                            Yes, Cancel
+                          </button>
+                          <button 
+                            onClick={() => setShowCancelConfirm(false)}
+                            className="flex-1 py-2 rounded-lg bg-white/5 text-white/60 text-[9px] font-bold uppercase tracking-widest"
+                          >
+                            No, Keep
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
