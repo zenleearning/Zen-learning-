@@ -6,9 +6,10 @@ import { useAuth } from '../context/AuthContext';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (message: string) => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,8 +27,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     try {
       if (isLogin) {
         await login(email, password);
+        if (onSuccess) onSuccess('Welcome back!');
       } else {
         await signup(email, password, name);
+        if (onSuccess) onSuccess('Account created successfully!');
       }
       onClose();
     } catch (err: any) {
@@ -44,6 +47,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       // Mock social sign in
       await new Promise(resolve => setTimeout(resolve, 1000));
       await signup(`${provider}@example.com`, 'social-pass', `Guest ${provider.charAt(0).toUpperCase() + provider.slice(1)}`);
+      if (onSuccess) onSuccess(`Signed in with ${provider}`);
       onClose();
     } catch (err: any) {
       setError(err.message || 'Social sign-in failed');

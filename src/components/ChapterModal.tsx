@@ -19,13 +19,15 @@ interface ChapterModalProps {
   chapter: Chapter | null;
   onClose: () => void;
   language: 'EN' | 'HI';
+  onComplete?: (chapterName: string) => void;
 }
 
-export const ChapterModal: React.FC<ChapterModalProps> = ({ chapter, onClose, language }) => {
+export const ChapterModal: React.FC<ChapterModalProps> = ({ chapter, onClose, language, onComplete }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechInstance, setSpeechInstance] = useState<SpeechSynthesisUtterance | null>(null);
   const [note, setNote] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
   const [showSaveFeedback, setShowSaveFeedback] = useState(false);
   const [activeTab, setActiveTab] = useState<'read' | 'quiz'>('read');
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
@@ -93,6 +95,13 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({ chapter, onClose, la
     const newStatus = !isCompleted;
     setIsCompleted(newStatus);
     localStorage.setItem(`completed_${chapter.id}`, String(newStatus));
+    if (newStatus) {
+      setShowCelebration(true);
+      setTimeout(() => setShowCelebration(false), 3000);
+      if (onComplete) {
+        onComplete(chapter.name);
+      }
+    }
   };
 
   const handleQuizAnswer = (questionIndex: number, optionIndex: number) => {
@@ -147,6 +156,41 @@ export const ChapterModal: React.FC<ChapterModalProps> = ({ chapter, onClose, la
             className="relative w-full max-w-2xl overflow-hidden rounded-[32px] sm:rounded-[40px] glass-card shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="p-6 sm:p-12">
+              <AnimatePresence>
+                {showCelebration && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.5 }}
+                    className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
+                  >
+                    <div className="relative">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                        className="absolute inset-0 -m-20 border-2 border-dashed border-theme/20 rounded-full"
+                      />
+                      <div className="glass-morphism p-10 rounded-full border border-theme/30 shadow-[0_0_50px_rgba(var(--theme-color-rgb),0.3)] flex flex-col items-center relative">
+                        {[...Array(8)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ scale: 0, x: 0, y: 0 }}
+                            animate={{ 
+                              scale: [0, 1, 0], 
+                              x: [0, (i % 2 === 0 ? 1 : -1) * (40 + Math.random() * 40)],
+                              y: [0, (i < 4 ? 1 : -1) * (40 + Math.random() * 40)]
+                            }}
+                            transition={{ duration: 1, repeat: Infinity, delay: i * 0.1 }}
+                            className="absolute h-2 w-2 rounded-full bg-theme"
+                          />
+                        ))}
+                        <Trophy size={60} className="text-theme mb-4" />
+                        <h4 className="font-display text-2xl uppercase tracking-tighter text-theme">Chapter Done!</h4>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
                 <div className="flex items-center gap-4">
                   <div className={cn(

@@ -1,21 +1,32 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
+  Search, 
+  Menu as MenuIcon, 
+  X, 
+  GraduationCap, 
   BookOpen, 
   ChevronRight, 
-  Search, 
-  GraduationCap, 
-  FileText, 
+  Settings, 
   CheckCircle2, 
-  Layout, 
-  Info,
+  Info, 
+  Youtube, 
+  History, 
+  Trash2, 
+  LayoutGrid, 
+  Languages, 
+  Volume2, 
+  Download, 
+  User as UserIcon, 
+  LogOut,
+  ArrowUp,
   ArrowLeft,
   BookMarked,
-  X,
-  Youtube,
-  Settings,
-  Menu as MenuIcon,
-  LayoutGrid,
+  Layout,
+  Share2,
+  Copy,
+  ExternalLink,
+  FileText,
   School
 } from 'lucide-react';
 import { SYLLABUS_DATA, UP_BOARD_DATA, Subject, Chapter } from './data/syllabus';
@@ -24,7 +35,6 @@ import { WelcomeScreen } from './components/WelcomeScreen';
 import { SettingsModal } from './components/SettingsModal';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Languages, Volume2, Download, User as UserIcon, LogOut } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { useAuth } from './context/AuthContext';
 import { AuthModal } from './components/AuthModal';
@@ -77,10 +87,24 @@ export default function App() {
   const [animationIntensity, setAnimationIntensity] = useState<'low' | 'medium' | 'high'>(() => {
     return (localStorage.getItem('animation_intensity') as any) || 'medium';
   });
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' } | null>(null);
+  const [searchHistory, setSearchHistory] = useState<string[]>(() => {
+    const saved = localStorage.getItem('search_history');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [highContrast, setHighContrast] = useState(() => {
     return localStorage.getItem('high_contrast') === 'true';
   });
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const { user, logout } = useAuth();
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   React.useEffect(() => {
     const hexToRgb = (hex: string) => {
@@ -123,6 +147,29 @@ export default function App() {
     localStorage.setItem('sound_enabled', soundEnabled.toString());
   }, [soundEnabled]);
 
+  React.useEffect(() => {
+    localStorage.setItem('search_history', JSON.stringify(searchHistory));
+  }, [searchHistory]);
+
+  const addToHistory = (query: string) => {
+    if (!query.trim()) return;
+    setSearchHistory(prev => {
+      const filtered = prev.filter(q => q.toLowerCase() !== query.toLowerCase());
+      return [query, ...filtered].slice(0, 5);
+    });
+  };
+
+  const clearHistory = () => {
+    setSearchHistory([]);
+    localStorage.removeItem('search_history');
+    showToastMessage(language === 'EN' ? 'Search history cleared' : 'खोज इतिहास साफ किया गया', 'info');
+  };
+
+  const showToastMessage = (message: string, type: 'success' | 'info' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
   const handleWelcomeComplete = () => {
     setShowWelcome(false);
     sessionStorage.setItem('welcome_seen', 'true');
@@ -146,6 +193,10 @@ export default function App() {
     footer: language === 'EN' ? 'Zen Learning All rights reserved' : 'ज़ेन लर्निंग सर्वाधिकार सुरक्षित',
     menu: language === 'EN' ? 'Menu' : 'मेनू',
     boards: language === 'EN' ? 'Select Board' : 'बोर्ड चुनें',
+    searchMain: language === 'EN' ? 'Search for subjects, chapters, or topics...' : 'विषय, अध्याय या टॉपिक खोजें...',
+    noResults: language === 'EN' ? 'No results found' : 'कोई परिणाम नहीं मिला',
+    searchHistory: language === 'EN' ? 'Search History' : 'खोज इतिहास',
+    clearHistory: language === 'EN' ? 'Clear History' : 'इतिहास साफ करें',
   };
 
   const currentSyllabus = activeBoard === 'CBSE' ? SYLLABUS_DATA : UP_BOARD_DATA;
@@ -199,8 +250,9 @@ export default function App() {
           <div className="flex items-center gap-2 sm:gap-6">
             <button 
               onClick={() => { playSound('click'); setIsSidebarOpen(true); }}
-              className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl glass-morphism hover:bg-white/10 transition-all group"
+              className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl glass-morphism hover:bg-white/10 transition-all group focus:ring-2 focus:ring-theme/50 outline-none"
               title="Menu"
+              aria-label="Open Menu"
             >
               <MenuIcon size={18} className="group-hover:scale-110 transition-transform" />
             </button>
@@ -218,21 +270,32 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-6">
-            <div className="relative hidden lg:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={18} />
+            <div className="relative hidden lg:block group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-theme transition-colors" size={18} />
               <input 
                 type="text" 
                 placeholder={t.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-10 w-48 xl:w-64 rounded-full glass-morphism pl-10 pr-4 text-sm outline-none focus:border-theme/50 transition-all"
+                aria-label="Search subjects"
+                className="h-10 w-48 xl:w-64 rounded-full glass-morphism pl-10 pr-10 text-sm outline-none focus:ring-2 focus:ring-theme/30 border border-white/5 focus:border-theme/50 transition-all"
               />
+              {searchQuery && (
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
 
             <button 
               onClick={() => setLanguage(language === 'EN' ? 'HI' : 'EN')}
-              className="flex items-center gap-1.5 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl glass-morphism hover:bg-white/10 transition-all group"
+              className="flex items-center gap-1.5 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl glass-morphism hover:bg-white/10 transition-all group focus:ring-2 focus:ring-theme/50 outline-none"
               title={language === 'EN' ? 'Switch to Hindi' : 'Switch to English'}
+              aria-label={language === 'EN' ? 'Switch to Hindi' : 'Switch to English'}
             >
               <Languages size={16} className="text-theme group-hover:rotate-12 transition-transform sm:w-[18px] sm:h-[18px]" />
               <span className="hidden sm:inline text-xs font-bold uppercase tracking-widest">{language === 'EN' ? 'English' : 'हिंदी'}</span>
@@ -241,8 +304,9 @@ export default function App() {
 
             <button 
               onClick={() => { playSound('click'); setIsSettingsModalOpen(true); }}
-              className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl glass-morphism hover:bg-white/10 transition-all group"
+              className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl glass-morphism hover:bg-white/10 transition-all group focus:ring-2 focus:ring-theme/50 outline-none"
               title="Settings"
+              aria-label="Open Settings"
             >
               <Settings size={16} className="group-hover:rotate-90 transition-transform duration-500 sm:w-[18px] sm:h-[18px]" />
             </button>
@@ -254,7 +318,7 @@ export default function App() {
                   <p className="text-xs font-bold truncate max-w-[100px]">{user.displayName || user.email?.split('@')[0]}</p>
                 </div>
                 <button 
-                  onClick={() => logout()}
+                  onClick={() => { logout(); showToastMessage(language === 'EN' ? 'Signed out successfully' : 'सफलतापूर्वक साइन आउट किया गया', 'info'); }}
                   className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl glass-morphism hover:bg-red-500/20 hover:text-red-400 transition-all group"
                   title="Sign Out"
                 >
@@ -284,16 +348,131 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
             >
-              <div className="mb-8 sm:mb-12">
-                <h2 className="font-display text-4xl sm:text-6xl tracking-tighter md:text-8xl mb-4">{t.title}</h2>
-                <p className="text-base sm:text-xl text-white/40 max-w-2xl">{t.subtitle}</p>
+              <div className="mb-8 sm:mb-12 flex flex-col items-center text-center">
+                {/* Large Animated Logo */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
+                  animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                  transition={{ 
+                    type: "spring",
+                    damping: 12,
+                    stiffness: 100,
+                    delay: 0.2
+                  }}
+                  className="mb-12 relative inline-block group"
+                >
+                  <div className="absolute -inset-4 bg-theme/20 rounded-full blur-2xl group-hover:bg-theme/40 transition-all duration-500 animate-pulse" />
+                  <motion.div
+                    animate={{ 
+                      y: [0, -10, 0],
+                    }}
+                    transition={{
+                      duration: 4,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="relative h-20 w-20 sm:h-28 sm:w-28 rounded-3xl neon-bg flex items-center justify-center text-black shadow-[0_0_50px_rgba(var(--theme-color-rgb),0.5)] cursor-pointer"
+                    aria-label="Zen Learning Logo"
+                  >
+                    <GraduationCap size={48} className="sm:hidden" />
+                    <GraduationCap size={64} className="hidden sm:block" />
+                    
+                    {/* Decorative Rings */}
+                    <motion.div 
+                      animate={{ rotate: 360, opacity: [0.2, 0.5, 0.2] }}
+                      transition={{ 
+                        rotate: { duration: 8, repeat: Infinity, ease: "linear" },
+                        opacity: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+                      }}
+                      className="absolute -inset-3 border border-theme/30 rounded-[2rem] border-dashed"
+                    />
+                    <motion.div 
+                      animate={{ rotate: -360, opacity: [0.1, 0.3, 0.1] }}
+                      transition={{ 
+                        rotate: { duration: 12, repeat: Infinity, ease: "linear" },
+                        opacity: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+                      }}
+                      className="absolute -inset-6 border border-theme/10 rounded-[2.5rem]"
+                    />
+                  </motion.div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35, duration: 0.8 }}
+                  className="mb-6"
+                >
+                  <h1 className="font-display text-3xl sm:text-5xl md:text-7xl uppercase tracking-[0.2em] text-white relative inline-block drop-shadow-[0_0_20px_rgba(var(--theme-color-rgb),0.3)]">
+                    Zen <span className="text-theme">Learning</span>
+                    <motion.div 
+                      initial={{ width: 0, opacity: 0 }}
+                      animate={{ width: '100%', opacity: 1 }}
+                      transition={{ delay: 1, duration: 1.5, ease: "easeInOut" }}
+                      className="absolute -bottom-3 left-0 h-[2px] bg-gradient-to-r from-theme via-theme/50 to-transparent"
+                    />
+                  </h1>
+                </motion.div>
+
+                <motion.h2 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="font-display text-xl sm:text-2xl md:text-3xl tracking-[0.4em] uppercase mb-12 text-white/40"
+                >
+                  {t.title}
+                </motion.h2>
+                <motion.p 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="text-base sm:text-xl text-white/40 max-w-2xl mb-8 sm:mb-12"
+                >
+                  {t.subtitle}
+                </motion.p>
+
+                {/* Main Search Bar */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 }}
+                  className="relative w-full max-w-3xl group mb-16 sm:mb-24 mx-auto"
+                >
+                  <div className="absolute -inset-1 bg-gradient-to-r from-theme to-purple-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-focus-within:opacity-60" />
+                  <div className="relative flex items-center glass-card rounded-2xl p-2 sm:p-3 border border-white/10 group-focus-within:border-theme/50 transition-all">
+                    <Search className="ml-3 sm:ml-4 text-white/30 group-focus-within:text-theme transition-colors" size={24} />
+                    <input 
+                      type="text" 
+                      placeholder={t.searchMain}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && searchQuery.trim()) {
+                          addToHistory(searchQuery);
+                        }
+                      }}
+                      aria-label="Main search subjects, chapters, or topics"
+                      className="flex-1 bg-transparent border-none outline-none px-4 py-2 sm:py-3 text-base sm:text-xl font-medium placeholder:text-white/20"
+                    />
+                    {searchQuery && (
+                      <button 
+                        onClick={() => setSearchQuery('')}
+                        className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+                      >
+                        <X size={20} className="text-white/40" />
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
               </div>
 
               {/* Featured Video Section */}
               <motion.div 
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                transition={{ delay: 0.8, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                 className="mb-16 sm:mb-24 relative group"
               >
                 {/* Dynamic Glow Background */}
@@ -308,6 +487,8 @@ export default function App() {
                     playsInline
                     key={autoPlayVideo ? 'playing' : 'paused'}
                     className="w-full h-full object-cover opacity-40 group-hover:opacity-70 transition-all duration-1000 scale-105 group-hover:scale-100"
+                    aria-hidden="true"
+                    title="Background educational video"
                   >
                     <source src="https://assets.mixkit.co/videos/preview/mixkit-children-in-a-classroom-studying-4416-large.mp4" type="video/mp4" />
                   </video>
@@ -391,7 +572,13 @@ export default function App() {
                 </div>
               </motion.div>
 
-              <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-2">
+              {/* Subjects Grid */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+                className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-2"
+              >
                 {filteredSubjects.map((subject) => (
                   <motion.div
                     key={subject.id}
@@ -399,9 +586,18 @@ export default function App() {
                     onMouseEnter={() => playSound('hover')}
                     onClick={() => { playSound('click'); setSelectedSubject(subject); }}
                     className={cn(
-                      "group relative cursor-pointer overflow-hidden rounded-[24px] sm:rounded-[32px] glass-card p-6 sm:p-8 transition-all",
+                      "group relative cursor-pointer overflow-hidden rounded-[24px] sm:rounded-[32px] glass-card p-6 sm:p-8 transition-all focus:ring-2 focus:ring-theme/50 outline-none",
                       visualEffects && "glitch-hover"
                     )}
+                    role="button"
+                    aria-label={`View ${subject.name} syllabus`}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        playSound('click');
+                        setSelectedSubject(subject);
+                      }
+                    }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     <div 
@@ -429,7 +625,14 @@ export default function App() {
                     </div>
                   </motion.div>
                 ))}
-              </div>
+              </motion.div>
+
+              {filteredSubjects.length === 0 && (
+                <div className="mt-20 text-center p-12 glass-card rounded-[32px] border border-white/5">
+                  <Search size={48} className="mx-auto text-white/10 mb-4" />
+                  <p className="text-xl text-white/40 font-medium">{t.noResults}</p>
+                </div>
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -439,13 +642,39 @@ export default function App() {
               exit={{ opacity: 0, x: -20 }}
               className="max-w-4xl mx-auto"
             >
-              <button 
-                onClick={() => { playSound('click'); setSelectedSubject(null); }}
-                className="mb-12 flex items-center gap-2 text-white/40 hover:text-white transition-colors group"
-              >
-                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-                <span className="text-sm font-bold uppercase tracking-widest">{t.backBtn}</span>
-              </button>
+              <div className="flex items-center justify-between mb-12">
+                <button 
+                  onClick={() => { playSound('click'); setSelectedSubject(null); }}
+                  className="flex items-center gap-2 text-white/40 hover:text-white transition-colors group focus:ring-2 focus:ring-theme/50 outline-none rounded-lg px-2 py-1"
+                  aria-label="Back to subjects"
+                >
+                  <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+                  <span className="text-sm font-bold uppercase tracking-widest">{t.backBtn}</span>
+                </button>
+
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      showToastMessage(language === 'EN' ? 'Link copied to clipboard' : 'लिंक क्लिपबोर्ड पर कॉपी किया गया');
+                      playSound('success');
+                    }}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl glass-morphism hover:bg-white/10 transition-all text-white/40 hover:text-white"
+                    title="Share Syllabus"
+                    aria-label="Share Syllabus"
+                  >
+                    <Share2 size={18} />
+                  </button>
+                  <button 
+                    onClick={handleDownloadPDF}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-theme text-black text-[10px] font-bold uppercase tracking-widest hover:scale-105 transition-all shadow-[0_0_20px_rgba(var(--theme-color-rgb),0.3)]"
+                    aria-label="Download PDF Guide"
+                  >
+                    <Download size={16} />
+                    <span className="hidden sm:inline">{t.downloadBtn}</span>
+                  </button>
+                </div>
+              </div>
 
               <div className="mb-10 sm:mb-16">
                 <div className="flex items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
@@ -474,9 +703,18 @@ export default function App() {
                       onMouseEnter={() => playSound('hover')}
                       onClick={() => { playSound('click'); setSelectedChapter(chapter); }}
                       className={cn(
-                        "group cursor-pointer rounded-[20px] sm:rounded-[24px] glass-card p-4 sm:p-6 transition-all hover:bg-white/[0.06]",
+                        "group cursor-pointer rounded-[20px] sm:rounded-[24px] glass-card p-4 sm:p-6 transition-all hover:bg-white/[0.06] focus:ring-2 focus:ring-theme/50 outline-none",
                         isCompleted ? "border-emerald-400/20 bg-emerald-400/5" : ""
                       )}
+                      role="button"
+                      aria-label={`Read chapter: ${chapter.name}`}
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          playSound('click');
+                          setSelectedChapter(chapter);
+                        }
+                      }}
                     >
                       <div className="flex items-start justify-between mb-3 sm:mb-4">
                         <div className="flex items-center gap-3 sm:gap-4">
@@ -631,6 +869,37 @@ export default function App() {
                     </button>
                   </div>
                 </div>
+
+                {searchHistory.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">{t.searchHistory}</p>
+                      <button 
+                        onClick={clearHistory}
+                        className="text-[8px] font-bold uppercase tracking-widest text-red-400 hover:text-red-300 transition-colors flex items-center gap-1"
+                      >
+                        <Trash2 size={10} />
+                        {t.clearHistory}
+                      </button>
+                    </div>
+                    <div className="space-y-1">
+                      {searchHistory.map((query, idx) => (
+                        <button 
+                          key={idx}
+                          onClick={() => {
+                            setSearchQuery(query);
+                            setIsSidebarOpen(false);
+                            playSound('click');
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all group"
+                        >
+                          <History size={14} className="group-hover:text-theme transition-colors" />
+                          <span className="text-xs truncate">{query}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="absolute bottom-6 left-6 right-6">
@@ -646,15 +915,35 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Scroll to Top Button */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-8 right-8 z-[100] h-12 w-12 rounded-full glass-morphism border border-theme/30 flex items-center justify-center text-theme shadow-2xl hover:bg-theme hover:text-black transition-all group"
+            aria-label="Scroll to top"
+          >
+            <ArrowUp size={24} className="group-hover:-translate-y-1 transition-transform" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
       <ChapterModal 
         chapter={selectedChapter} 
         onClose={() => setSelectedChapter(null)} 
         language={language}
+        onComplete={(chapterName) => {
+          showToastMessage(language === 'EN' ? `Chapter "${chapterName}" completed!` : `अध्याय "${chapterName}" पूरा हुआ!`);
+        }}
       />
 
       <AuthModal 
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)} 
+        onSuccess={(msg) => showToastMessage(msg)}
       />
 
       <SettingsModal
@@ -676,6 +965,22 @@ export default function App() {
         setSoundEnabled={setSoundEnabled}
       />
 
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-2xl glass-morphism border border-theme/30 shadow-2xl flex items-center gap-3"
+          >
+            <div className="h-6 w-6 rounded-full bg-theme/20 flex items-center justify-center text-theme">
+              <CheckCircle2 size={14} />
+            </div>
+            <span className="text-sm font-bold uppercase tracking-widest">{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Footer */}
       <footer className="border-t border-white/5 py-12 bg-black/40 backdrop-blur-3xl">
