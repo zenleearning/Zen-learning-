@@ -30,10 +30,10 @@ async function startServer() {
             price_data: {
               currency: "inr",
               product_data: {
-                name: "Zen Learning Premium",
-                description: "Lifetime access to all features and no ads.",
+                name: "GameVerse Pro",
+                description: "Unlock exclusive gaming guides, early access to news, and no ads.",
               },
-              unit_amount: 49900, // Amount in paise (499 INR)
+              unit_amount: 29900, // Amount in paise (299 INR)
             },
             quantity: 1,
           },
